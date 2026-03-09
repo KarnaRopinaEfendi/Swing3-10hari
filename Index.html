@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IHSG Swing Screener  3-10 Hari By Idun</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-text {
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+        }
+        .stock-card {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        .stock-card:hover {
+            transform: translateX(5px);
+            border-left-color: #38bdf8;
+            background: rgba(51, 65, 85, 0.8);
+        }
+        .bullish { color: #4ade80; }
+        .bearish { color: #f87171; }
+        .neutral { color: #fbbf24; }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.8); }
+        }
+        .scanning {
+            animation: pulse-glow 2s infinite;
+        }
+        
+        .range-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #334155;
+            outline: none;
+        }
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        
+        .trend-up { background: linear-gradient(90deg, rgba(74, 222, 128, 0.2) 0%, transparent 100%); }
+        .trend-down { background: linear-gradient(90deg, rgba(248, 113, 113, 0.2) 0%, transparent 100%); }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+    </style>
+</head>
+<body class="text-slate-200 p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-2 glow-text tracking-tight">
+                    IHSG <span class="text-sky-400">SWING</span> SCREENER
+                </h1>
+                <p class="text-slate-400 text-lg">Screener saham untuk holding period 3-10 hari</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex gap-3">
+                <div class="glass px-4 py-2 rounded-lg text-center">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider">Market</div>
+                    <div class="text-xl font-bold text-sky-400 mono">IHSG</div>
+                </div>
+                <div class="glass px-4 py-2 rounded-lg text-center">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider">Timeframe</div>
+                    <div class="text-xl font-bold text-emerald-400 mono">3-10D</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Panel -->
+        <div class="glass rounded-2xl p-6 mb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    Filter Parameter
+                </h2>
+                <button onclick="resetFilters()" class="text-sm text-slate-400 hover:text-white transition-colors">Reset Default</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Price Range -->
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-300 flex justify-between">
+                        <span>Harga Saham</span>
+                        <span class="text-sky-400 mono" id="priceLabel">50 - 5000</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="number" id="minPrice" value="50" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm mono focus:border-sky-400 focus:outline-none" placeholder="Min">
+                        <input type="number" id="maxPrice" value="5000" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm mono focus:border-sky-400 focus:outline-none" placeholder="Max">
+                    </div>
+                </div>
+
+                <!-- RSI Filter -->
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-300 flex justify-between">
+                        <span>RSI (14)</span>
+                        <span class="text-sky-400 mono" id="rsiLabel">30 - 70</span>
+                    </label>
+                    <input type="range" id="rsiMin" min="0" max="100" value="30" class="range-slider mb-2" oninput="updateRSILabel()">
+                    <input type="range" id="rsiMax" min="0" max="100" value="70" class="range-slider" oninput="updateRSILabel()">
+                    <div class="flex justify-between text-xs text-slate-500">
+                        <span>Oversold</span>
+                        <span>Overbought</span>
+                    </div>
+                </div>
+
+                <!-- Volume Filter -->
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-300 flex justify-between">
+                        <span>Volume Ratio</span>
+                        <span class="text-sky-400 mono" id="volLabel">> 1.5x AVG</span>
+                    </label>
+                    <select id="volumeFilter" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm focus:border-sky-400 focus:outline-none">
+                        <option value="0">Semua Volume</option>
+                        <option value="1.2">> 1.2x Rata-rata</option>
+                        <option value="1.5" selected>> 1.5x Rata-rata</option>
+                        <option value="2.0">> 2.0x Rata-rata</option>
+                        <option value="3.0">> 3.0x Rata-rata (Breakout)</option>
+                    </select>
+                </div>
+
+                <!-- Trend Filter -->
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-slate-300">Setup Pattern</label>
+                    <select id="setupFilter" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm focus:border-sky-400 focus:outline-none">
+                        <option value="all">Semua Setup</option>
+                        <option value="breakout">Breakout Resistance</option>
+                        <option value="pullback">Pullback ke EMA20</option>
+                        <option value="reversal">Bullish Reversal</option>
+                        <option value="momentum">Momentum Continuation</option>
+                        <option value="oversold">Oversold Bounce</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Additional Filters -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-slate-700">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="bullishEMA" checked class="w-4 h-4 rounded border-slate-600 text-sky-400 focus:ring-sky-400 bg-slate-800">
+                    <label for="bullishEMA" class="text-sm text-slate-300">Harga > EMA20 (Bullish)</label>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="macdCross" class="w-4 h-4 rounded border-slate-600 text-sky-400 focus:ring-sky-400 bg-slate-800">
+                    <label for="macdCross" class="text-sm text-slate-300">MACD Bullish Cross</label>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="nearSupport" class="w-4 h-4 rounded border-slate-600 text-sky-400 focus:ring-sky-400 bg-slate-800">
+                    <label for="nearSupport" class="text-sm text-slate-300">Dekat Support (Risk Reward Bagus)</label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-center">
+                <button onclick="runScreener()" class="bg-sky-500 hover:bg-sky-400 text-white font-bold py-3 px-8 rounded-xl transition-all transform hover:scale-105 flex items-center gap-2 shadow-lg shadow-sky-500/30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    SCAN SAHAM
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="glass rounded-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Hasil Screening
+                </h2>
+                <div class="flex gap-2">
+                    <span id="resultCount" class="bg-slate-800 px-3 py-1 rounded-full text-sm text-slate-400">0 saham ditemukan</span>
+                    <button onclick="exportResults()" class="text-sm bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-full transition-colors flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Header -->
+            <div class="grid grid-cols-12 gap-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-4">
+                <div class="col-span-2 md:col-span-1">Ticker</div>
+                <div class="col-span-2 md:col-span-1 text-right">Harga</div>
+                <div class="col-span-2 md:col-span-1 text-right">Change</div>
+                <div class="col-span-2 md:col-span-2 text-center hidden md:block">Setup</div>
+                <div class="col-span-2 md:col-span-1 text-center">RSI</div>
+                <div class="col-span-2 md:col-span-2 text-center hidden md:block">Volume</div>
+                <div class="col-span-2 md:col-span-2 text-center hidden md:block">Trend</div>
+                <div class="col-span-4 md:col-span-2 text-right">Signal</div>
+            </div>
+
+            <!-- Results Container -->
+            <div id="resultsContainer" class="space-y-2 max-h-[600px] overflow-y-auto">
+                <div class="text-center py-12 text-slate-500">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <p>Klik "SCAN SAHAM" untuk memulai screening</p>
+                    <p class="text-sm mt-2 opacity-70">Data simulated untuk demo purposes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategy Guide -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass rounded-xl p-4 border-l-4 border-emerald-500">
+                <h3 class="font-bold text-emerald-400 mb-2">Entry Strategy</h3>
+                <ul class="text-sm text-slate-300 space-y-1">
+                    <li>• Entry di pullback ke EMA5/10</li>
+                    <li>• Konfirmasi candle bullish</li>
+                    <li>• Volume di atas rata-rata</li>
+                </ul>
+            </div>
+            <div class="glass rounded-xl p-4 border-l-4 border-amber-500">
+                <h3 class="font-bold text-amber-400 mb-2">Risk Management</h3>
+                <ul class="text-sm text-slate-300 space-y-1">
+                    <li>• Stop loss: -3% sampai -5%</li>
+                    <li>• Position size: max 10% per saham</li>
+                    <li>• Cut loss jika break support</li>
+                </ul>
+            </div>
+            <div class="glass rounded-xl p-4 border-l-4 border-sky-500">
+                <h3 class="font-bold text-sky-400 mb-2">Exit Strategy</h3>
+                <ul class="text-sm text-slate-300 space-y-1">
+                    <li>• Target 1: 5-7% (partial)</li>
+                    <li>• Target 2: 10-15% (trailing)</li>
+                    <li>• Time stop: 10 hari max</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated Stock Database (Top IHSG liquid stocks)
+        const stockDatabase = [
+            { ticker: 'BBRI', name: 'Bank BRI', price: 4120, change: 2.5, rsi: 58, volumeRatio: 2.1, ema20: 4050, ema50: 3980, support: 4000, resistance: 4200, trend: 'up', setup: 'breakout' },
+            { ticker: 'TLKM', name: 'Telkom Indonesia', price: 3680, change: -0.8, rsi: 45, volumeRatio: 0.9, ema20: 3700, ema50: 3650, support: 3600, resistance: 3750, trend: 'sideways', setup: 'pullback' },
+            { ticker: 'BBCA', name: 'Bank BCA', price: 8750, change: 1.2, rsi: 62, volumeRatio: 1.3, ema20: 8650, ema50: 8500, support: 8600, resistance: 8900, trend: 'up', setup: 'momentum' },
+            { ticker: 'ASII', name: 'Astra International', price: 5125, change: 3.8, rsi: 68, volumeRatio: 2.5, ema20: 4950, ema50: 4800, support: 5000, resistance: 5200, trend: 'up', setup: 'breakout' },
+            { ticker: 'BMRI', name: 'Bank Mandiri', price: 6140, change: 1.5, rsi: 55, volumeRatio: 1.4, ema20: 6050, ema50: 5900, support: 6000, resistance: 6250, trend: 'up', setup: 'momentum' },
+            { ticker: 'UNVR', name: 'Unilever', price: 3420, change: -1.2, rsi: 32, volumeRatio: 1.1, ema20: 3500, ema50: 3600, support: 3400, resistance: 3550, trend: 'down', setup: 'oversold' },
+            { ticker: 'PGAS', name: 'Perusahaan Gas', price: 1560, change: 5.2, rsi: 72, volumeRatio: 3.2, ema20: 1480, ema50: 1420, support: 1500, resistance: 1600, trend: 'up', setup: 'breakout' },
+            { ticker: 'INDF', name: 'Indofood', price: 8925, change: 0.5, rsi: 52, volumeRatio: 0.8, ema20: 8900, ema50: 8850, support: 8800, resistance: 9000, trend: 'sideways', setup: 'pullback' },
+            { ticker: 'BBNI', name: 'Bank BNI', price: 5430, change: 2.1, rsi: 60, volumeRatio: 1.8, ema20: 5350, ema50: 5200, support: 5300, resistance: 5500, trend: 'up', setup: 'momentum' },
+            { ticker: 'ANTM', name: 'Aneka Tambang', price: 1980, change: 4.5, rsi: 65, volumeRatio: 2.8, ema20: 1900, ema50: 1850, support: 1920, resistance: 2000, trend: 'up', setup: 'breakout' },
+            { ticker: 'PTBA', name: 'Bukit Asam', price: 2840, change: -2.1, rsi: 38, volumeRatio: 1.2, ema20: 2900, ema50: 2950, support: 2800, resistance: 2950, trend: 'down', setup: 'oversold' },
+            { ticker: 'EXCL', name: 'XL Axiata', price: 2420, change: 1.8, rsi: 56, volumeRatio: 1.5, ema20: 2380, ema50: 2350, support: 2350, resistance: 2450, trend: 'up', setup: 'pullback' },
+            { ticker: 'ICBP', name: 'Indofood CBP', price: 10500, change: -0.5, rsi: 48, volumeRatio: 0.7, ema20: 10600, ema50: 10700, support: 10400, resistance: 10800, trend: 'sideways', setup: 'reversal' },
+            { ticker: 'KLBF', name: 'Kalbe Farma', price: 1325, change: 0.8, rsi: 50, volumeRatio: 1.0, ema20: 1310, ema50: 1300, support: 1300, resistance: 1350, trend: 'up', setup: 'momentum' },
+            { ticker: 'WIKA', name: 'Wijaya Karya', price: 680, change: 6.2, rsi: 75, volumeRatio: 4.1, ema20: 640, ema50: 620, support: 650, resistance: 700, trend: 'up', setup: 'breakout' },
+            { ticker: 'ADRO', name: 'Adaro Energy', price: 1980, change: -0.9, rsi: 42, volumeRatio: 0.9, ema20: 2000, ema50: 2050, support: 1950, resistance: 2050, trend: 'down', setup: 'oversold' },
+            { ticker: 'MEDC', name: 'Medco Energi', price: 1420, change: 3.2, rsi: 64, volumeRatio: 2.0, ema20: 1380, ema50: 1350, support: 1380, resistance: 1450, trend: 'up', setup: 'momentum' },
+            { ticker: 'BRPT', name: 'Barito Pacific', price: 890, change: 1.1, rsi: 54, volumeRatio: 1.3, ema20: 880, ema50: 870, support: 870, resistance: 900, trend: 'up', setup: 'pullback' },
+            { ticker: 'TBIG', name: 'Tower Bersama', price: 1520, change: -1.5, rsi: 35, volumeRatio: 1.0, ema20: 1550, ema50: 1580, support: 1500, resistance: 1580, trend: 'down', setup: 'reversal' },
+            { ticker: 'CPIN', name: 'Charoen Pokphand', price: 5120, change: 2.8, rsi: 61, volumeRatio: 1.6, ema20: 5000, ema50: 4900, support: 5000, resistance: 5200, trend: 'up', setup: 'breakout' }
+        ];
+
+        function updateRSILabel() {
+            const min = document.getElementById('rsiMin').value;
+            const max = document.getElementById('rsiMax').value;
+            document.getElementById('rsiLabel').textContent = `${min} - ${max}`;
+        }
+
+        function resetFilters() {
+            document.getElementById('minPrice').value = 50;
+            document.getElementById('maxPrice').value = 5000;
+            document.getElementById('rsiMin').value = 30;
+            document.getElementById('rsiMax').value = 70;
+            document.getElementById('volumeFilter').value = 1.5;
+            document.getElementById('setupFilter').value = 'all';
+            document.getElementById('bullishEMA').checked = true;
+            document.getElementById('macdCross').checked = false;
+            document.getElementById('nearSupport').checked = false;
+            updateRSILabel();
+        }
+
+        function runScreener() {
+            const btn = document.querySelector('button[onclick="runScreener()"]');
+            btn.classList.add('scanning');
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> SCANNING...`;
+            
+            setTimeout(() => {
+                filterStocks();
+                btn.classList.remove('scanning');
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> SCAN SAHAM`;
+            }, 1500);
+        }
+
+        function filterStocks() {
+            const minPrice = parseInt(document.getElementById('minPrice').value) || 0;
+            const maxPrice = parseInt(document.getElementById('maxPrice').value) || 999999;
+            const minRSI = parseInt(document.getElementById('rsiMin').value);
+            const maxRSI = parseInt(document.getElementById('rsiMax').value);
+            const minVol = parseFloat(document.getElementById('volumeFilter').value);
+            const setupType = document.getElementById('setupFilter').value;
+            const bullishEMA = document.getElementById('bullishEMA').checked;
+            const nearSupport = document.getElementById('nearSupport').checked;
+
+            let filtered = stockDatabase.filter(stock => {
+                // Price filter
+                if (stock.price < minPrice || stock.price > maxPrice) return false;
+                
+                // RSI filter
+                if (stock.rsi < minRSI || stock.rsi > maxRSI) return false;
+                
+                // Volume filter
+                if (minVol > 0 && stock.volumeRatio < minVol) return false;
+                
+                // Setup filter
+                if (setupType !== 'all' && stock.setup !== setupType) return false;
+                
+                // EMA filter
+                if (bullishEMA && stock.price <= stock.ema20) return false;
+                
+                // Near support filter (within 3% of support)
+                if (nearSupport) {
+                    const distFromSupport = ((stock.price - stock.support) / stock.price) * 100;
+                    if (distFromSupport > 3 || distFromSupport < 0) return false;
+                }
+                
+                return true;
+            });
+
+            // Sort by composite score (volume * momentum)
+            filtered.sort((a, b) => (b.volumeRatio * b.change) - (a.volumeRatio * a.change));
+            
+            displayResults(filtered);
+        }
+
+        function displayResults(stocks) {
+            const container = document.getElementById('resultsContainer');
+            const countLabel = document.getElementById('resultCount');
+            
+            countLabel.textContent = `${stocks.length} saham ditemukan`;
+            
+            if (stocks.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-500">
+                        <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p>Tidak ada saham yang memenuhi kriteria</p>
+                        <p class="text-sm mt-2 opacity-70">Coba ubah parameter filter</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = stocks.map(stock => {
+                const changeClass = stock.change > 0 ? 'bullish' : stock.change < 0 ? 'bearish' : 'neutral';
+                const changeIcon = stock.change > 0 ? '↑' : stock.change < 0 ? '↓' : '-';
+                const trendClass = stock.trend === 'up' ? 'trend-up' : stock.trend === 'down' ? 'trend-down' : '';
+                
+                let signal = '';
+                let signalClass = '';
+                
+                if (stock.setup === 'breakout' && stock.volumeRatio > 2) {
+                    signal = 'STRONG BUY';
+                    signalClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50';
+                } else if (stock.setup === 'momentum' || stock.setup === 'pullback') {
+                    signal = 'BUY';
+                    signalClass = 'bg-sky-500/20 text-sky-400 border border-sky-500/50';
+                } else if (stock.setup === 'oversold' && stock.rsi < 35) {
+                    signal = 'WATCH';
+                    signalClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/50';
+                } else {
+                    signal = 'HOLD';
+                    signalClass = 'bg-slate-700 text-slate-400 border border-slate-600';
+                }
+
+                const riskReward = ((stock.resistance - stock.price) / (stock.price - stock.support)).toFixed(1);
+                
+                return `
+                    <div class="stock-card ${trendClass} glass rounded-lg p-4 cursor-pointer" onclick="showDetail('${stock.ticker}')">
+                        <div class="grid grid-cols-12 gap-4 items-center">
+                            <div class="col-span-2 md:col-span-1">
+                                <div class="font-bold text-white text-lg">${stock.ticker}</div>
+                                <div class="text-xs text-slate-500 truncate">${stock.name}</div>
+                            </div>
+                            <div class="col-span-2 md:col-span-1 text-right">
+                                <div class="font-bold mono text-white">Rp${stock.price.toLocaleString()}</div>
+                                <div class="text-xs text-slate-500">Vol: ${stock.volumeRatio}x</div>
+                            </div>
+                            <div class="col-span-2 md:col-span-1 text-right">
+                                <div class="font-bold mono ${changeClass}">${changeIcon} ${Math.abs(stock.change)}%</div>
+                                <div class="text-xs text-slate-500">RSI: ${stock.rsi}</div>
+                            </div>
+                            <div class="col-span-2 md:col-span-2 text-center hidden md:block">
+                                <span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                                    ${stock.setup.toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="col-span-2 md:col-span-1 text-center">
+                                <div class="w-full bg-slate-800 rounded-full h-2 mb-1">
+                                    <div class="bg-gradient-to-r from-emerald-500 to-amber-500 to-red-500 h-2 rounded-full" style="width: ${stock.rsi}%"></div>
+                                </div>
+                                <div class="text-xs ${stock.rsi > 70 ? 'text-red-400' : stock.rsi < 30 ? 'text-emerald-400' : 'text-slate-400'}">${stock.rsi}</div>
+                            </div>
+                            <div class="col-span-2 md:col-span-2 text-center hidden md:block">
+                                <div class="flex items-center justify-center gap-1">
+                                    <div class="w-16 bg-slate-800 rounded-full h-2">
+                                        <div class="bg-sky-500 h-2 rounded-full" style="width: ${Math.min(stock.volumeRatio * 33, 100)}%"></div>
+                                    </div>
+                                    <span class="text-xs mono ${stock.volumeRatio > 2 ? 'text-sky-400 font-bold' : 'text-slate-500'}">${stock.volumeRatio}x</span>
+                                </div>
+                            </div>
+                            <div class="col-span-2 md:col-span-2 text-center hidden md:block">
+                                <div class="text-xs">
+                                    <span class="text-emerald-400">S: ${stock.support}</span>
+                                    <span class="text-slate-500 mx-1">|</span>
+                                    <span class="text-red-400">R: ${stock.resistance}</span>
+                                </div>
+                                <div class="text-xs text-slate-500 mt-1">R/R: 1:${riskReward}</div>
+                            </div>
+                            <div class="col-span-4 md:col-span-2 text-right">
+                                <span class="inline-block px-3 py-1 rounded-lg text-xs font-bold ${signalClass}">
+                                    ${signal}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showDetail(ticker) {
+            const stock = stockDatabase.find(s => s.ticker === ticker);
+            if (!stock) return;
+            
+            const riskReward = ((stock.resistance - stock.price) / (stock.price - stock.support)).toFixed(1);
+            const target1 = (stock.price * 1.05).toFixed(0);
+            const target2 = (stock.price * 1.10).toFixed(0);
+            const stopLoss = (stock.price * 0.97).toFixed(0);
+            
+            alert(`
+Detail Analisis ${ticker} - ${stock.name}
+
+📊 TEKNIKAL:
+• Harga: Rp${stock.price.toLocaleString()}
+• Change: ${stock.change > 0 ? '+' : ''}${stock.change}%
+• RSI(14): ${stock.rsi} (${stock.rsi > 70 ? 'Overbought' : stock.rsi < 30 ? 'Oversold' : 'Neutral'})
+• Volume: ${stock.volumeRatio}x rata-rata
+
+📈 LEVELS:
+• Support: Rp${stock.support.toLocaleString()}
+• Resistance: Rp${stock.resistance.toLocaleString()}
+• EMA20: Rp${stock.ema20.toLocaleString()}
+
+🎯 TRADING PLAN (Swing 3-10 Hari):
+• Entry: Rp${stock.price.toLocaleString()} - Rp${(stock.price * 1.02).toFixed(0)}
+• Target 1: Rp${target1} (+5%)
+• Target 2: Rp${target2} (+10%)
+• Stop Loss: Rp${stopLoss} (-3%)
+• Risk/Reward: 1:${riskReward}
+
+⚠️  Setup: ${stock.setup.toUpperCase()}
+            `);
+        }
+
+        function exportResults() {
+            const rows = document.querySelectorAll('.stock-card');
+            if (rows.length === 0) {
+                alert('Tidak ada data untuk diexport');
+                return;
+            }
+            
+            let csv = 'Ticker,Name,Price,Change%,RSI,Volume,Setup,Signal\n';
+            // In real implementation, this would export the filtered data
+            alert('Fitur export akan mendownload CSV dengan data saham yang tersaring.\n\nDalam implementasi nyata, ini akan terhubung ke backend untuk data real-time.');
+        }
+
+        // Initialize
+        updateRSILabel();
+    </script>
+</body>
+</html>
